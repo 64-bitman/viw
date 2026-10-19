@@ -1,5 +1,6 @@
 executable(
   'viw',
+  'event.c',
   'log.c',
   'main.c',
   'misc.c',

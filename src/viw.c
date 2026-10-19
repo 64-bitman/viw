@@ -61,6 +61,9 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
+    if (!viw_wakeup_init(&viw->main_wk, viw->event_loop))
+        goto fail;
+
     return true;
 fail:
     viw_uninit(viw);
@@ -71,6 +74,9 @@ void
 viw_uninit(struct viw *viw)
 {
     assert(viw != NULL);
+
+    // Must be called before freeing/releasing anything!
+    viw_wakeup_uninit(&viw->main_wk);
 
     viw_debug("Uninitializing viw state");
 

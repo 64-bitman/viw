@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "event.h"
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -35,6 +36,8 @@ struct viw
     struct wlr_backend   *backend;
     struct wlr_renderer  *renderer;
     struct wlr_allocator *allocator;
+
+    struct viw_wakeup main_wk;
 };
 
 // clang-format off
