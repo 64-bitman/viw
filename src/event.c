@@ -76,6 +76,8 @@ viw_wakeup_init(struct viw_wakeup *wk, struct wl_event_loop *event_loop)
     assert(wk != NULL);
     assert(event_loop != NULL);
 
+    memset(wk, 0, sizeof(*wk));
+
     wk->event_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (wk->event_fd == -1)
     {
@@ -95,6 +97,7 @@ viw_wakeup_init(struct viw_wakeup *wk, struct wl_event_loop *event_loop)
 
     pthread_mutex_init(&wk->mut, NULL);
     wl_list_init(&wk->pending);
+    wk->init = true;
 
     return true;
 }
@@ -108,7 +111,7 @@ viw_wakeup_uninit(struct viw_wakeup *wk)
 {
     assert(wk != NULL);
 
-    if (wk->event_fd == -1)
+    if (!wk->init)
         return;
 
     (void)trigger_callbacks(wk, 0);
@@ -127,6 +130,21 @@ viw_wakeup_flush(struct viw_wakeup *wk)
 {
     assert(wk != NULL);
     trigger_callbacks(wk, 0);
+}
+
+/*
+ * Write to the eventfd so that the event loop is woken up.
+ */
+bool
+viw_wakeup_wakeup(struct viw_wakeup *wk)
+{
+    int64_t v = 1;
+    if (write(wk->event_fd, &v, sizeof(v)) == -1)
+    {
+        viw_warn_errno("Error waking up event loop");
+        return false;
+    }
+    return true;
 }
 
 /*
@@ -149,7 +167,5 @@ viw_wakeup_send(
     wl_list_insert(wk->pending.prev, &cb->link);
     pthread_mutex_unlock(&wk->mut);
 
-    int64_t v = 1;
-    if (write(wk->event_fd, &v, sizeof(v)) == -1)
-        viw_warn_errno("Error waking up event loop");
+    (void)viw_wakeup_wakeup(wk);
 }

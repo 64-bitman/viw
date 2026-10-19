@@ -27,4 +27,5 @@ void *viw_realloc(void *ptr, size_t sz);
 void viw_free(void *ptr);
 char *viw_strdup(const char *str);
 char *viw_strndup(const char *str, size_t len);
+char *viw_strdup_printf(const char *fmt, ...);
 // clang-format on

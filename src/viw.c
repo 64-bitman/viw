@@ -61,6 +61,9 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
+    if (!viw_config_interface_init(&viw->cfg_iface))
+        goto fail;
+
     if (!viw_wakeup_init(&viw->main_wk, viw->event_loop))
         goto fail;
 
@@ -77,6 +80,7 @@ viw_uninit(struct viw *viw)
 
     // Must be called before freeing/releasing anything!
     viw_wakeup_uninit(&viw->main_wk);
+    viw_config_interface_uninit(&viw->cfg_iface);
 
     viw_debug("Uninitializing viw state");
 
@@ -116,6 +120,9 @@ viw_start(struct viw *viw)
         return false;
     }
 
+    if (!viw_config_interface_start(&viw->cfg_iface))
+        return false;
+
     return true;
 }
 
@@ -124,7 +131,6 @@ signal_handler(int signo UNUSED, void *udata)
 {
     struct viw *viw = udata;
 
-    viw_info("Exiting...");
     wl_display_terminate(viw->display);
     return 0;
 }

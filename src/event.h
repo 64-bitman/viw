@@ -26,6 +26,7 @@ typedef void (*viw_wakeup_func_T)(struct viw_wakeup_callback *cb);
 struct viw_wakeup_callback
 {
     viw_wakeup_func_T func;
+    void             *udata;
     struct wl_list    link;
 };
 
@@ -34,6 +35,8 @@ struct viw_wakeup_callback
  */
 struct viw_wakeup
 {
+    bool init;
+
     struct wl_event_source *event_source;
     int                     event_fd;
 
@@ -45,5 +48,6 @@ struct viw_wakeup
 bool viw_wakeup_init(struct viw_wakeup *wk, struct wl_event_loop *event_loop);
 void viw_wakeup_uninit(struct viw_wakeup *wk);
 void viw_wakeup_flush(struct viw_wakeup *wk);
+bool viw_wakeup_wakeup(struct viw_wakeup *wk);
 void viw_wakeup_send(struct viw_wakeup *wk, struct viw_wakeup_callback *cb, viw_wakeup_func_T func);
 // clang-format on
