@@ -21,14 +21,8 @@
 #include "mem.h"
 #include "xdg.h"
 #include <assert.h>
-#include <lauxlib.h>
-#include <lua.h>
 #include <signal.h>
-
-struct viw_config
-{
-    lua_State *L;
-};
+#include <unistd.h>
 
 bool
 viw_config_interface_init(struct viw_config_interface *iface)
@@ -37,22 +31,23 @@ viw_config_interface_init(struct viw_config_interface *iface)
 
     memset(iface, 0, sizeof(*iface));
 
-    iface->config_path = xdg_get_base_dir(XDG_CONFIG_HOME, "viw");
-    if (iface->config_path == NULL)
+    iface->config_dir = xdg_get_base_dir(XDG_CONFIG_HOME, "viw");
+
+    if (iface->config_dir == NULL)
         return false;
 
     iface->event_loop = wl_event_loop_create();
     if (iface->event_loop == NULL)
     {
         viw_error("Error creating event loop for config");
-        viw_free(iface->config_path);
+        viw_free(iface->config_dir);
         return false;
     }
 
     if (!viw_wakeup_init(&iface->cfg_wk, iface->event_loop))
     {
         wl_event_loop_destroy(iface->event_loop);
-        viw_free(iface->config_path);
+        viw_free(iface->config_dir);
         return false;
     }
 
@@ -61,6 +56,31 @@ viw_config_interface_init(struct viw_config_interface *iface)
     pthread_mutex_init(&iface->run_mut, NULL);
 
     return true;
+}
+
+void
+viw_config_interface_uninit(struct viw_config_interface *iface)
+{
+    assert(iface != NULL);
+
+    if (!iface->init)
+        return;
+
+    if (iface->run)
+    {
+        pthread_mutex_lock(&iface->run_mut);
+        iface->run = false;
+        pthread_mutex_unlock(&iface->run_mut);
+
+        viw_wakeup_wakeup(&iface->cfg_wk);
+        pthread_join(iface->thread, NULL);
+    }
+
+    pthread_mutex_destroy(&iface->run_mut);
+    viw_wakeup_uninit(&iface->cfg_wk);
+    wl_event_loop_destroy(iface->event_loop);
+
+    viw_free(iface->config_dir);
 }
 
 static void *
@@ -73,6 +93,18 @@ alloc_func(void *ud UNUSED, void *ptr, size_t osize UNUSED, size_t nsize)
     }
     else
         return viw_realloc(ptr, nsize);
+}
+
+static void
+config_unload(struct viw_config *cfg)
+{
+    assert(cfg != NULL);
+
+    if (cfg->L == NULL)
+        return;
+
+    lua_close(cfg->L);
+    viw_debug("Unloaded config");
 }
 
 static void *
@@ -95,14 +127,12 @@ config_thread(void *udata)
         goto error;
     }
 
-    struct viw_config cfg;
+    struct viw_config cfg = {0};
 
-    cfg.L = lua_newstate(alloc_func, NULL, luaL_makeseed(NULL));
-    if (cfg.L == NULL)
-    {
-        viw_error_errno("Error allocating lua state");
+    cfg.iface = iface;
+
+    if (!viw_config_reload(&cfg))
         goto error;
-    }
 
     while (true)
     {
@@ -117,7 +147,7 @@ config_thread(void *udata)
         wl_event_loop_dispatch(iface->event_loop, -1);
     }
 
-    lua_close(cfg.L);
+    config_unload(&cfg);
 
     viw_debug("Config thread stopped");
 
@@ -151,27 +181,48 @@ viw_config_interface_start(struct viw_config_interface *iface)
     return true;
 }
 
-void
-viw_config_interface_uninit(struct viw_config_interface *iface)
+/*
+ * Create the lua state and initialize the scripting API, then run "init.lua".
+ * Returns false on failure.
+ */
+bool
+viw_config_reload(struct viw_config *cfg)
 {
-    assert(iface != NULL);
+    assert(cfg != NULL);
 
-    if (!iface->init)
-        return;
+    lua_State *L = lua_newstate(alloc_func, NULL, luaL_makeseed(NULL));
 
-    if (iface->run)
+    if (L == NULL)
     {
-        pthread_mutex_lock(&iface->run_mut);
-        iface->run = false;
-        pthread_mutex_unlock(&iface->run_mut);
-
-        viw_wakeup_wakeup(&iface->cfg_wk);
-        pthread_join(iface->thread, NULL);
+        viw_error_errno("Error allocating lua state");
+        return false;
     }
 
-    pthread_mutex_destroy(&iface->run_mut);
-    viw_wakeup_uninit(&iface->cfg_wk);
-    wl_event_loop_destroy(iface->event_loop);
+    luaL_openlibs(L);
 
-    viw_free(iface->config_path);
+    char *init = viw_strdup_printf("%s/init.lua", cfg->iface->config_dir);
+
+    if (init == NULL)
+    {
+        lua_close(L);
+        return false;
+    }
+
+    if (luaL_loadfilex(L, init, "t") != LUA_OK ||
+        lua_pcall(L, 0, 0, 0) != LUA_OK)
+    {
+        viw_error("Error loading config: %s", lua_tostring(L, -1));
+        lua_pop(L, 1);
+
+        viw_free(init);
+        lua_close(L);
+        return false;
+    }
+    viw_free(init);
+
+    config_unload(cfg);
+    cfg->L = L;
+    viw_debug("Loaded config");
+
+    return true;
 }

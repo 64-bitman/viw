@@ -19,13 +19,24 @@
 #pragma once
 
 #include "event.h"
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
 #include <wayland-server.h>
+
+struct viw_config_interface;
+struct viw_config
+{
+    struct viw_config_interface *iface;
+
+    lua_State *L;
+};
 
 struct viw_config_interface
 {
     bool init;
 
-    char *config_path; // Path to config directory, set on initialization once.
+    char *config_dir;
 
     // Config thread uses its own event loop
     struct wl_event_loop *event_loop; // Created on main thread and transferred
@@ -39,6 +50,7 @@ struct viw_config_interface
 
 // clang-format off
 bool viw_config_interface_init(struct viw_config_interface *iface);
-bool viw_config_interface_start(struct viw_config_interface *iface);
 void viw_config_interface_uninit(struct viw_config_interface *iface);
+bool viw_config_interface_start(struct viw_config_interface *iface);
+bool viw_config_reload(struct viw_config *cfg);
 // clang-format on
