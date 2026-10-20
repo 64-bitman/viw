@@ -17,9 +17,13 @@
 #include "xdg.h"
 #include "log.h"
 #include "mem.h"
+#include <assert.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+static char *XDG_CONFIG_HOME_PATH = NULL;
+static char *XDG_DATA_HOME_PATH = NULL;
 
 /*
  * Get user home directory, returns NULL on failure.
@@ -46,58 +50,98 @@ get_home(void)
 }
 
 /*
- * Return allocated string containing the specified base dir suffixed with
- * "child" (may be NULL). Returns NULL on failure.
+ * Should be called once on startup. Returns false on failure
  */
-char *
-xdg_get_base_dir(enum xdg_base_directory type, const char *child)
+bool
+xdg_init(void)
 {
-    const char *xdg;
-    char       *dir;
+    struct
+    {
+        const char *env;
+        const char *home_suffix;
+        char      **var;
+    } base_dirs[] = {
+        [XDG_CONFIG_HOME] =
+            {.env = getenv("XDG_CONFIG_HOME"),
+             .home_suffix = ".config",
+             .var = &XDG_CONFIG_HOME_PATH},
+        [XDG_DATA_HOME] = {
+            .env = getenv("XDG_DATA_HOME"),
+            .home_suffix = ".local/share",
+            .var = &XDG_DATA_HOME_PATH
+        },
+    };
+
+    const char *home = NULL;
+    bool        ok = true;
+
+    for (int i = 0; i < N_ELEMENTS(base_dirs); i++)
+    {
+        assert(*base_dirs[i].var == NULL);
+        if (base_dirs[i].env == NULL)
+        {
+            if (home == NULL)
+            {
+                home = get_home();
+
+                if (home == NULL)
+                {
+                    viw_error("Failed getting directory of user home");
+                    ok = false;
+                    break;
+                }
+            }
+
+            *base_dirs[i].var =
+                viw_strdup_printf("%s/%s", home, base_dirs[i].home_suffix);
+        }
+        else
+            *base_dirs[i].var = viw_strdup(base_dirs[i].env);
+
+        if (*base_dirs[i].var == NULL)
+        {
+            viw_error("Error allocating XDG base directory paths");
+            ok = false;
+            break;
+        }
+    }
+
+    if (!ok)
+        for (int i = 0; i < N_ELEMENTS(base_dirs); i++)
+            viw_free(*base_dirs[i].var);
+
+    return ok;
+}
+
+void
+xdg_uninit(void)
+{
+    viw_free(XDG_CONFIG_HOME_PATH);
+    viw_free(XDG_DATA_HOME_PATH);
+}
+
+const char *
+xdg_get_base_dir(enum xdg_base_directory type)
+{
+    assert(XDG_CONFIG_HOME_PATH != NULL);
+    assert(XDG_DATA_HOME_PATH != NULL);
 
     switch (type)
     {
     case XDG_CONFIG_HOME:
-        xdg = getenv("XDG_CONFIG_HOME");
-        break;
+        return XDG_CONFIG_HOME_PATH;
     case XDG_DATA_HOME:
-        xdg = getenv("XDG_DATA_HOME");
-        break;
-    case XDG_RUNTIME_DIR:
-        xdg = getenv("XDG_RUNTIME_DIR");
-        break;
+        return XDG_DATA_HOME_PATH;
     default:
         viw_error("Unknown base directory %d", type);
         abort();
     }
+}
 
-    if (child == NULL)
-        child = "";
+char *
+xdg_get_base_dir_child(enum xdg_base_directory type, const char *child)
+{
+    assert(child != NULL);
 
-    if (xdg == NULL)
-    {
-        if (type == XDG_RUNTIME_DIR)
-            dir = viw_strdup_printf(
-                "/run/user/%d%s%s", getuid(), *child == NUL ? "" : "/", child
-            );
-        else
-        {
-            const char *home = get_home();
-
-            if (home == NULL)
-                return NULL;
-
-            if (type == XDG_CONFIG_HOME)
-                dir = viw_strdup_printf("%s/.config/%s", home, child);
-            else
-                dir = viw_strdup_printf("%s/.local/share/%s", home, child);
-        }
-    }
-    else
-        dir = viw_strdup_printf("%s%s%s", xdg, *child == NUL ? "" : "/", child);
-
-    if (dir == NULL)
-        return NULL;
-
-    return dir;
+    return viw_strdup_printf("%s/%s", xdg_get_base_dir(type), child);
 }

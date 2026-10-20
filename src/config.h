@@ -18,39 +18,22 @@
 
 #pragma once
 
-#include "event.h"
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
-#include <wayland-server.h>
+#include <stdbool.h>
 
-struct viw_config_interface;
 struct viw_config
-{
-    struct viw_config_interface *iface;
-
-    lua_State *L;
-};
-
-struct viw_config_interface
 {
     bool init;
 
     char *config_dir;
+    char *init_lua;
 
-    // Config thread uses its own event loop
-    struct wl_event_loop *event_loop; // Created on main thread and transferred
-                                      // ownership of to config thread
-    struct viw_wakeup cfg_wk;
-
-    pthread_t       thread;
-    bool            run;
-    pthread_mutex_t run_mut;
+    lua_State *L;
 };
 
 // clang-format off
-bool viw_config_interface_init(struct viw_config_interface *iface);
-void viw_config_interface_uninit(struct viw_config_interface *iface);
-bool viw_config_interface_start(struct viw_config_interface *iface);
-bool viw_config_reload(struct viw_config *cfg);
+bool viw_config_init(struct viw_config *cfg);
+void viw_config_uninit(struct viw_config *cfg);
 // clang-format on

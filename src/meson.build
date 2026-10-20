@@ -1,7 +1,7 @@
 executable(
   'viw',
+  'api.c',
   'config.c',
-  'event.c',
   'log.c',
   'main.c',
   'misc.c',

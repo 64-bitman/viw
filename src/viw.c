@@ -61,10 +61,7 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
-    if (!viw_config_interface_init(&viw->cfg_iface))
-        goto fail;
-
-    if (!viw_wakeup_init(&viw->main_wk, viw->event_loop))
+    if (!viw_config_init(&viw->cfg))
         goto fail;
 
     return true;
@@ -78,11 +75,9 @@ viw_uninit(struct viw *viw)
 {
     assert(viw != NULL);
 
-    // Must be called before freeing/releasing anything!
-    viw_wakeup_uninit(&viw->main_wk);
-    viw_config_interface_uninit(&viw->cfg_iface);
-
     viw_debug("Uninitializing viw state");
+
+    viw_config_uninit(&viw->cfg);
 
     if (viw->allocator != NULL)
         wlr_allocator_destroy(viw->allocator);
@@ -120,9 +115,6 @@ viw_start(struct viw *viw)
         return false;
     }
 
-    if (!viw_config_interface_start(&viw->cfg_iface))
-        return false;
-
     return true;
 }
 
@@ -145,7 +137,7 @@ viw_run(struct viw *viw)
         wl_event_loop_add_signal(viw->event_loop, SIGTERM, signal_handler, viw),
     };
 
-    viw_info("Running server");
+    viw_debug("Running server");
 
     wl_display_run(viw->display);
 

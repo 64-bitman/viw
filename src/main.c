@@ -18,6 +18,7 @@
 
 #include "log.h"
 #include "viw.h"
+#include "xdg.h"
 #include <getopt.h>
 #include <stdlib.h>
 
@@ -53,6 +54,9 @@ main(int argc, char **argv)
         }
     }
 
+    if (!xdg_init())
+        return EXIT_FAILURE;
+
     struct viw viw;
 
     if (!viw_init(&viw))
@@ -66,6 +70,8 @@ main(int argc, char **argv)
 
     viw_run(&viw);
     viw_uninit(&viw);
+
+    xdg_uninit();
 
     return EXIT_SUCCESS;
 }

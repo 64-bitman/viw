@@ -16,13 +16,16 @@
 
 #pragma once
 
+#include <stdbool.h>
 enum xdg_base_directory
 {
     XDG_CONFIG_HOME,
     XDG_DATA_HOME,
-    XDG_RUNTIME_DIR
 };
 
 // clang-format off
-char *xdg_get_base_dir(enum xdg_base_directory type, const char *child);
+bool xdg_init(void);
+void xdg_uninit(void);
+const char *xdg_get_base_dir(enum xdg_base_directory type);
+char *xdg_get_base_dir_child(enum xdg_base_directory type, const char *child);
 // clang-format on
