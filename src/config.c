@@ -53,7 +53,7 @@ load_config(struct viw_config *cfg)
 {
     assert(cfg != NULL);
 
-    lua_State *L = lua_newstate(alloc_func, NULL, luaL_makeseed(NULL));
+    lua_State *L = lua_newstate(alloc_func, NULL);
 
     if (L == NULL)
     {

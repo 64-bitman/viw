@@ -28,6 +28,6 @@ endif
 wayland_server = dependency('wayland-server')
 wlroots = dependency('wlroots-0.21')
 xkbcommon = dependency('xkbcommon')
-lua = dependency('lua')
+luajit = dependency('luajit')
 
 subdir('src')

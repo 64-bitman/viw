@@ -9,5 +9,5 @@ executable(
   'viw.c',
   'xdg.c',
   include_directories: include_directories('.'),
-  dependencies: [wayland_server, wlroots, xkbcommon, lua]
+  dependencies: [wayland_server, wlroots, xkbcommon, luajit]
 )
