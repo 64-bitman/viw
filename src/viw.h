@@ -19,6 +19,7 @@
 #pragma once
 
 #include "config.h"
+#include "input.h"
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -38,6 +39,8 @@ struct viw
     struct wlr_allocator *allocator;
 
     struct viw_config cfg;
+
+    struct viw_input_manager imgr;
 };
 
 // clang-format off

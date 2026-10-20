@@ -19,8 +19,21 @@
 #include "api.h"
 #include <assert.h>
 
+static int
+l_seat(lua_State *L)
+{
+    return 0;
+}
+
+/*
+ * Register the global API table to the Lua state
+ */
 void
 viw_register_api(struct viw_config *cfg)
 {
     assert(cfg != NULL);
+
+    static const luaL_Reg funcs[] = {{"seat", l_seat}, {NULL, NULL}};
+
+    luaL_register(cfg->L, "viw", funcs);
 }

@@ -57,7 +57,8 @@ main(int argc, char **argv)
     if (!xdg_init())
         return EXIT_FAILURE;
 
-    struct viw viw;
+    struct viw viw = {0}; // Initialize to zero so that we know what has been
+                          // initialized when fatal error occurs.
 
     if (!viw_init(&viw))
         return EXIT_FAILURE;

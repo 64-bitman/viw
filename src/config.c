@@ -63,9 +63,6 @@ load_config(struct viw_config *cfg)
 
     luaL_openlibs(L);
 
-    // Create global API table
-    viw_register_api(cfg);
-
     // Run init.lua
     if (luaL_loadfilex(L, cfg->init_lua, "t") != LUA_OK ||
         lua_pcall(L, 0, 0, 0) != LUA_OK)
@@ -77,6 +74,10 @@ load_config(struct viw_config *cfg)
 
     unload_config(cfg);
     cfg->L = L;
+
+    // Create global API table
+    viw_register_api(cfg);
+
     viw_debug("Loaded config \"%s\"", cfg->config_dir);
 
     return true;

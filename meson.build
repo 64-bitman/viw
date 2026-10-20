@@ -29,5 +29,6 @@ wayland_server = dependency('wayland-server')
 wlroots = dependency('wlroots-0.21')
 xkbcommon = dependency('xkbcommon')
 luajit = dependency('luajit')
+libinput = dependency('libinput')
 
 subdir('src')

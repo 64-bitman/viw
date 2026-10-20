@@ -61,6 +61,8 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
+    viw_input_manager_init(viw, &viw->imgr);
+
     if (!viw_config_init(&viw->cfg))
         goto fail;
 
@@ -78,6 +80,8 @@ viw_uninit(struct viw *viw)
     viw_debug("Uninitializing viw state");
 
     viw_config_uninit(&viw->cfg);
+
+    viw_input_manager_uninit(&viw->imgr);
 
     if (viw->allocator != NULL)
         wlr_allocator_destroy(viw->allocator);

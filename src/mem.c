@@ -69,6 +69,9 @@ viw_strdup_printf(const char *fmt, ...)
     len = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
 
+    if (len == -1)
+        return NULL;
+
     str = viw_malloc(len + 1);
     if (str == NULL)
         return NULL;
