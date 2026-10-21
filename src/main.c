@@ -61,11 +61,15 @@ main(int argc, char **argv)
                           // initialized when fatal error occurs.
 
     if (!viw_init(&viw))
+    {
+        xdg_uninit();
         return EXIT_FAILURE;
+    }
 
     if (!viw_start(&viw))
     {
         viw_uninit(&viw);
+        xdg_uninit();
         return EXIT_FAILURE;
     }
 
