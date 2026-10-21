@@ -17,6 +17,7 @@
  */
 
 #include "mem.h"
+#include "log.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,19 +26,32 @@
 void *
 viw_malloc(size_t sz)
 {
-    return malloc(sz);
+    void *ptr = malloc(sz);
+
+    if (ptr == NULL)
+        viw_error_errno("malloc(%zu) error", sz);
+    return ptr;
 }
 
 void *
 viw_calloc(size_t n, size_t sz)
 {
-    return calloc(n, sz);
+    void *ptr = calloc(n, sz);
+
+    if (ptr == NULL)
+        viw_error_errno("calloc(%zu, %zu) error", n, sz);
+    return ptr;
 }
 
 void *
 viw_realloc(void *ptr, size_t sz)
 {
-    return realloc(ptr, sz);
+    void *new = realloc(ptr, sz);
+
+    if (new == NULL)
+        viw_error_errno("realloc(%p, %zu) error", ptr, sz);
+
+    return new;
 }
 
 void
@@ -49,13 +63,23 @@ viw_free(void *ptr)
 char *
 viw_strdup(const char *str)
 {
-    return strdup(str);
+    char *new = strdup(str);
+
+    if (new == NULL)
+        viw_error_errno("strdup(\"%s\") error", str);
+
+    return new;
 }
 
 char *
 viw_strndup(const char *str, size_t len)
 {
-    return strndup(str, len);
+    char *new = strndup(str, len);
+
+    if (new == NULL)
+        viw_error_errno("strndup(\"%s\", %zu) error", str, len);
+
+    return new;
 }
 
 char *
