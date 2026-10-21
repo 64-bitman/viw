@@ -30,6 +30,7 @@ viw_malloc(size_t sz)
 
     if (ptr == NULL)
         viw_error_errno("malloc(%zu) error", sz);
+
     return ptr;
 }
 
@@ -40,6 +41,7 @@ viw_calloc(size_t n, size_t sz)
 
     if (ptr == NULL)
         viw_error_errno("calloc(%zu, %zu) error", n, sz);
+
     return ptr;
 }
 
