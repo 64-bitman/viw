@@ -53,7 +53,11 @@ struct viw_input
     struct wl_listener       destroy;
     struct wl_list           link;
 
-    struct wl_signal event; // struct viw_input_event
+    struct
+    {
+        struct wl_signal new_event;     // struct viw_input_event
+        struct wl_signal input_destroy; // Called for struct viw_input
+    } events;
 };
 
 /*
@@ -87,10 +91,15 @@ struct viw_input_manager
     struct wl_list inputs; // struct viw_input
     struct wl_list seats;  // struct viw_seat;
 
-    struct wl_listener new_input;
+    struct wl_listener new_input; // struct wlr_input_device
+
+    struct
+    {
+        struct wl_signal input_added; // struct viw_input
+    } events;
 };
 
 // clang-format off
-void viw_input_manager_init(struct viw *viw, struct viw_input_manager *imgr);
+void viw_input_manager_init(struct viw_input_manager *imgr, struct viw *viw);
 void viw_input_manager_uninit(struct viw_input_manager *imgr);
 // clang-format on

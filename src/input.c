@@ -66,6 +66,10 @@ viw_input_destroy(struct viw_input *input)
 {
     assert(input != NULL);
 
+    wl_signal_emit(&input->events.input_destroy, NULL);
+    assert(wl_list_empty(&input->events.input_destroy.listener_list));
+    assert(wl_list_empty(&input->events.new_event.listener_list));
+
     switch (input->device->type)
     {
     case WLR_INPUT_DEVICE_KEYBOARD:
@@ -232,6 +236,8 @@ event_new_input(struct wl_listener *listener, void *data)
 
     input->device = device;
     input->viw = imgr->viw;
+    wl_signal_init(&input->events.input_destroy);
+    wl_signal_init(&input->events.new_event);
 
     if (!configure_input_device(input))
     {
@@ -245,20 +251,24 @@ event_new_input(struct wl_listener *listener, void *data)
     wl_signal_add(&input->device->events.destroy, &input->destroy);
 
     viw_debug("New input device \"%s\"", input->identifier);
+    wl_signal_emit(&imgr->events.input_added, input);
 
     wl_list_insert(&imgr->inputs, &input->link);
 }
 
 void
-viw_input_manager_init(struct viw *viw, struct viw_input_manager *imgr)
+viw_input_manager_init(struct viw_input_manager *imgr, struct viw *viw)
 {
     assert(imgr != NULL);
+    assert(viw != NULL);
 
     wl_list_init(&imgr->inputs);
     wl_list_init(&imgr->seats);
 
     imgr->new_input.notify = event_new_input;
     wl_signal_add(&viw->backend->events.new_input, &imgr->new_input);
+
+    wl_signal_init(&imgr->events.input_added);
 
     viw_debug("Initialized input manager");
     imgr->viw = viw;
@@ -269,6 +279,7 @@ void
 viw_input_manager_uninit(struct viw_input_manager *imgr)
 {
     assert(imgr != NULL);
+    assert(wl_list_empty(&imgr->events.input_added.listener_list));
 
     wl_list_remove(&imgr->new_input.link);
 

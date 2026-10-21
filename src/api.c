@@ -17,11 +17,17 @@
  */
 
 #include "api.h"
+#include "misc.h"
 #include <assert.h>
 
+/*
+ * "seat.create(name)": Create a new seat and return seat object
+ */
 static int
-l_seat(lua_State *L)
+l_seat_create(lua_State *L)
 {
+    const char *name = luaL_checkstring(L, 1);
+
     return 0;
 }
 
@@ -33,7 +39,17 @@ viw_register_api(struct viw_config *cfg)
 {
     assert(cfg != NULL);
 
-    static const luaL_Reg funcs[] = {{"seat", l_seat}, {NULL, NULL}};
+    static const luaL_Reg seat_funcs[] = {{"add", l_seat_create}, {NULL, NULL}};
 
-    luaL_register(cfg->L, "viw", funcs);
+    lua_State *L = cfg->L;
+
+    lua_newtable(L); // -3
+
+    // Create "viw.seat"
+    lua_pushstring(L, "seat"); // -2
+    lua_newtable(L);           // -1
+    luaL_setfuncs(L, seat_funcs, 0);
+    lua_rawset(L, -3);
+
+    lua_setglobal(L, "viw");
 }

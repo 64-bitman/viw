@@ -12,7 +12,8 @@ project(
 add_project_arguments(
   [
     '-D_POSIX_C_SOURCE=200809L',
-    '-DWLR_USE_UNSTABLE'
+    '-DWLR_USE_UNSTABLE',
+    '-DPCRE2_CODE_UNIT_WIDTH=8'
   ],
   language: 'c'
 )
@@ -30,5 +31,6 @@ wlroots = dependency('wlroots-0.21')
 xkbcommon = dependency('xkbcommon')
 luajit = dependency('luajit')
 libinput = dependency('libinput')
+libpcre2_8 = dependency('libpcre2-8')
 
 subdir('src')

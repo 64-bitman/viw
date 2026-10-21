@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include "input.h"
+#include "seat.h"
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -41,6 +42,7 @@ struct viw
     struct viw_config cfg;
 
     struct viw_input_manager imgr;
+    struct viw_seat_manager  smgr;
 };
 
 // clang-format off

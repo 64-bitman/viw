@@ -61,10 +61,14 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
-    viw_input_manager_init(viw, &viw->imgr);
+    viw_input_manager_init(&viw->imgr, viw);
+    viw_seat_manager_init(&viw->smgr, viw);
 
     if (!viw_config_init(&viw->cfg))
         goto fail;
+
+    // Create default seat if user hasn't created one manually
+    viw_seat_manager_default(&viw->smgr);
 
     return true;
 fail:
@@ -81,6 +85,7 @@ viw_uninit(struct viw *viw)
 
     viw_config_uninit(&viw->cfg);
 
+    viw_seat_manager_uninit(&viw->smgr);
     viw_input_manager_uninit(&viw->imgr);
 
     if (viw->allocator != NULL)

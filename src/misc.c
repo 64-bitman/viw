@@ -18,6 +18,8 @@
 
 #include "misc.h"
 #include "log.h"
+#include <assert.h>
+#include <stdio.h>
 
 /*
  * Get time for given clock in nanoseconds. Returns 0 on failure
@@ -35,3 +37,44 @@ get_time_ns(clockid_t id)
 
     return (int64_t)tp.tv_sec * 1000000000LL + tp.tv_nsec;
 }
+
+#ifdef DEBUG
+/*
+ * Useful for debugging
+ */
+void
+util_lua_dump_stack(lua_State *L)
+{
+    assert(L != NULL);
+
+    int i;
+    int top = lua_gettop(L);
+
+    printf("<Lua stack top>\n");
+
+    for (i = top; i >= 1; i--)
+    {
+        int t = lua_type(L, i);
+
+        printf("(%d|%d): ", i, i - top - 1);
+        switch (t)
+        {
+        case LUA_TSTRING:
+            printf("(string, '%s')", lua_tostring(L, i));
+            break;
+        case LUA_TBOOLEAN:
+            printf("(boolean, '%s')", lua_toboolean(L, i) ? "true" : "false");
+            break;
+        case LUA_TNUMBER:
+            printf("(string, '%lf')", lua_tonumber(L, i));
+            break;
+        default:
+            printf("(%s)", lua_typename(L, t));
+            break;
+        }
+        if (i > 1)
+            printf("\n");
+    }
+    printf("\n<Lua stack bottom>\n");
+}
+#endif

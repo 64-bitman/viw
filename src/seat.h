@@ -18,9 +18,12 @@
 
 #pragma once
 
-#include "input.h" // IWYU pragma: keep
+#include "array.h"
+#include <pcre2.h>
 #include <wayland-server.h>
 #include <wlr/types/wlr_seat.h>
+
+struct viw;
 
 /*
  * Handle to an input device for a seat
@@ -28,14 +31,24 @@
 struct viw_seat_input
 {
     struct viw_input *input;
-    struct wl_list    link;
+
+    struct wl_listener new_event; // struct viw_input_event
+    struct wl_listener input_destroy;
+
+    struct wl_list link;
 };
 
 struct viw_seat
 {
     struct wlr_seat *global;
+    struct wl_list   inputs; // struct viw_seat_input
 
-    struct wl_list inputs; // struct viw_seat_input
+    // Array of patterns to match new input devices to this seat
+    ARRAY_DEF(input_patterns, pcre2_code *);
+    bool match_all; // If "all", then match every input device, "input_patterns"
+                    // is ignorede.
+
+    struct wl_list link;
 };
 
 struct viw_seat_manager
@@ -44,4 +57,15 @@ struct viw_seat_manager
     struct viw *viw;
 
     struct wl_list seats;
+
+    struct wl_listener input_added; // struct viw_input
 };
+
+// clang-format off
+void viw_seat_manager_init(struct viw_seat_manager *smgr, struct viw *viw);
+void viw_seat_manager_uninit(struct viw_seat_manager *smgr);
+bool viw_seat_manager_default(struct viw_seat_manager *smgr);
+struct viw_seat *viw_seat_add(struct viw_seat_manager *smgr, const char *name);
+void viw_seat_remove(struct viw_seat *seat);
+void viw_seat_add_input_pattern(struct viw_seat *seat, const char *pat);
+// clang-format on

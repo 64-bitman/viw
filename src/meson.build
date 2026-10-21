@@ -11,5 +11,5 @@ executable(
   'viw.c',
   'xdg.c',
   include_directories: include_directories('.'),
-  dependencies: [wayland_server, wlroots, xkbcommon, luajit, libinput]
+  dependencies: [wayland_server, wlroots, xkbcommon, luajit, libinput, libpcre2_8]
 )

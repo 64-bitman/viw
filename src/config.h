@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/lualib.h>
+#include <luajit.h>
 #include <stdbool.h>
 
 struct viw_config

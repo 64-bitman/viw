@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <luajit.h>
 #include <stdint.h> // IWYU pragma: keep
 #include <time.h>   // IWYU pragma: keep
 
@@ -32,6 +33,23 @@
 
 #define NUL '\0'
 
+#define MIN(a, b)                                                              \
+    ({                                                                         \
+        __typeof__(a) _a = (a);                                                \
+        __typeof__(b) _b = (b);                                                \
+        _a < _b ? _a : _b;                                                     \
+    })
+
+#define MAX(a, b)                                                              \
+    ({                                                                         \
+        __typeof__(a) _a = (a);                                                \
+        __typeof__(b) _b = (b);                                                \
+        _a > _b ? _a : _b;                                                     \
+    })
+
 // clang-format off
 int64_t get_time_ns(clockid_t id);
+#ifdef DEBUG
+void util_lua_dump_stack(lua_State *L);
+#endif
 // clang-format on
