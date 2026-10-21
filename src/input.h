@@ -85,7 +85,6 @@ struct viw_pointer
 
 struct viw_input_manager
 {
-    bool        init;
     struct viw *viw;
 
     struct wl_list inputs; // struct viw_input

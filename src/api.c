@@ -17,7 +17,6 @@
  */
 
 #include "api.h"
-#include "misc.h"
 #include <assert.h>
 
 /*
@@ -27,6 +26,7 @@ static int
 l_seat_create(lua_State *L)
 {
     const char *name = luaL_checkstring(L, 1);
+    struct viw *cfg = get_viw(L);
 
     return 0;
 }
@@ -35,13 +35,11 @@ l_seat_create(lua_State *L)
  * Register the global API table to the Lua state
  */
 void
-viw_register_api(struct viw_config *cfg)
+viw_register_api(lua_State *L, struct viw_config *cfg)
 {
     assert(cfg != NULL);
 
     static const luaL_Reg seat_funcs[] = {{"add", l_seat_create}, {NULL, NULL}};
-
-    lua_State *L = cfg->L;
 
     lua_newtable(L); // -3
 

@@ -50,6 +50,7 @@ event_new_event(struct wl_listener *listener, void *data)
         wl_container_of(listener, sinput, input_destroy);
     struct viw_input_event *event = data;
 
+    // TODO
     (void)event;
 }
 
@@ -133,13 +134,11 @@ viw_seat_manager_init(struct viw_seat_manager *smgr, struct viw *viw)
 
     wl_list_init(&smgr->seats);
 
-    smgr->viw = viw;
-
     smgr->input_added.notify = event_input_added;
     wl_signal_add(&viw->imgr.events.input_added, &smgr->input_added);
 
     viw_debug("Initialized seat manager");
-    smgr->init = true;
+    smgr->viw = viw;
 }
 
 /*
@@ -150,7 +149,7 @@ viw_seat_manager_uninit(struct viw_seat_manager *smgr)
 {
     assert(smgr != NULL);
 
-    if (!smgr->init)
+    if (smgr->viw == NULL)
         return;
 
     wl_list_remove(&smgr->input_added.link);
@@ -161,7 +160,7 @@ viw_seat_manager_uninit(struct viw_seat_manager *smgr)
         viw_seat_remove(seat);
 
     viw_debug("Unitialized seat manager");
-    smgr->init = false;
+    smgr->viw = NULL;
 }
 
 /*

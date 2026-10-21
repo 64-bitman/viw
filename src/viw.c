@@ -64,7 +64,7 @@ viw_init(struct viw *viw)
     viw_input_manager_init(&viw->imgr, viw);
     viw_seat_manager_init(&viw->smgr, viw);
 
-    if (!viw_config_init(&viw->cfg))
+    if (!viw_config_init(&viw->cfg, viw))
         goto fail;
 
     // Create default seat if user hasn't created one manually

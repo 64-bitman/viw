@@ -23,9 +23,12 @@
 #include <luajit.h>
 #include <stdbool.h>
 
+// Key in Lua registry that contains light userdata to struct viw_config
+#define VIW_CONFIG_LUA "_viw_config_"
+
 struct viw_config
 {
-    bool init;
+    struct viw *viw;
 
     char *config_dir;
     char *init_lua;
@@ -34,6 +37,8 @@ struct viw_config
 };
 
 // clang-format off
-bool viw_config_init(struct viw_config *cfg);
+bool viw_config_init(struct viw_config *cfg, struct viw *viw);
 void viw_config_uninit(struct viw_config *cfg);
+struct viw_config *get_viw_config(lua_State *L);
+struct viw *get_viw(lua_State *L);
 // clang-format on

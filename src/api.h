@@ -21,5 +21,5 @@
 #include "config.h"
 
 // clang-format off
-void viw_register_api(struct viw_config *cfg);
+void viw_register_api(lua_State *L, struct viw_config *cfg);
 // clang-format on

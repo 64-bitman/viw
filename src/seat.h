@@ -53,7 +53,6 @@ struct viw_seat
 
 struct viw_seat_manager
 {
-    bool        init;
     struct viw *viw;
 
     struct wl_list seats;

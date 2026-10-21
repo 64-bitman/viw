@@ -272,17 +272,20 @@ viw_input_manager_init(struct viw_input_manager *imgr, struct viw *viw)
 
     viw_debug("Initialized input manager");
     imgr->viw = viw;
-    imgr->init = true;
 }
 
 void
 viw_input_manager_uninit(struct viw_input_manager *imgr)
 {
     assert(imgr != NULL);
+
+    if (imgr->viw == NULL)
+        return;
+
     assert(wl_list_empty(&imgr->events.input_added.listener_list));
 
     wl_list_remove(&imgr->new_input.link);
 
     viw_debug("Uninitialized input manager");
-    imgr->init = false;
+    imgr->viw = NULL;
 }

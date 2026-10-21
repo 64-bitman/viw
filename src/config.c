@@ -63,6 +63,12 @@ load_config(struct viw_config *cfg)
 
     luaL_openlibs(L);
 
+    lua_pushlightuserdata(L, cfg);
+    lua_setfield(L, LUA_REGISTRYINDEX, VIW_CONFIG_LUA);
+
+    // Create global API table
+    viw_register_api(L, cfg);
+
     // Run init.lua
     if (luaL_loadfilex(L, cfg->init_lua, "t") != LUA_OK ||
         lua_pcall(L, 0, 0, 0) != LUA_OK)
@@ -75,16 +81,13 @@ load_config(struct viw_config *cfg)
     unload_config(cfg);
     cfg->L = L;
 
-    // Create global API table
-    viw_register_api(cfg);
-
     viw_debug("Loaded config \"%s\"", cfg->config_dir);
 
     return true;
 }
 
 bool
-viw_config_init(struct viw_config *cfg)
+viw_config_init(struct viw_config *cfg, struct viw *viw)
 {
     assert(cfg != NULL);
 
@@ -98,7 +101,7 @@ viw_config_init(struct viw_config *cfg)
     if (!load_config(cfg))
         goto fail;
 
-    cfg->init = true;
+    cfg->viw = viw;
 
     return true;
 fail:
@@ -113,11 +116,32 @@ viw_config_uninit(struct viw_config *cfg)
 {
     assert(cfg != NULL);
 
-    if (!cfg->init)
+    if (cfg->viw == NULL)
         return;
 
     viw_free(cfg->init_lua);
     viw_free(cfg->config_dir);
     unload_config(cfg);
-    cfg->init = false;
+    cfg->viw = NULL;
+}
+
+/*
+ * Get the struct viw_config from the Lua state
+ */
+struct viw_config *
+get_viw_config(lua_State *L)
+{
+    lua_getfield(L, LUA_REGISTRYINDEX, VIW_CONFIG_LUA);
+    struct viw_config *cfg = lua_touserdata(L, -1);
+    lua_pop(L, 1);
+    return cfg;
+}
+
+/*
+ * Get the struct viw from the Lua state
+ */
+struct viw *
+get_viw(lua_State *L)
+{
+    return ((struct viw_config *)get_viw_config(L))->viw;
 }
