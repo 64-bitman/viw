@@ -21,18 +21,39 @@
 #include <wayland-server.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
+#include <wlr/types/wlr_pointer.h>
 
 struct viw;
+
+enum viw_input_event_type
+{
+    VIW_KEYBOARD_KEY,
+    VIW_KEYBOARD_MODIFIERS,
+};
+
+struct viw_input_event
+{
+    enum viw_input_event_type type;
+
+    union
+    {
+        struct wlr_keyboard_key_event *key;
+    };
+};
 
 /*
  * Base type for input device
  */
 struct viw_input
 {
+    struct viw *viw;
+
     char                    *identifier;
     struct wlr_input_device *device;
     struct wl_listener       destroy;
     struct wl_list           link;
+
+    struct wl_signal event; // struct viw_input_event
 };
 
 /*
@@ -48,9 +69,20 @@ struct viw_keyboard
     struct wl_listener modifiers;
 };
 
+/*
+ * WLR_INPUT_DEVICE_POINTER
+ */
+struct viw_pointer
+{
+    struct viw_input base;
+
+    struct wlr_pointer *pointer;
+};
+
 struct viw_input_manager
 {
-    bool init;
+    bool        init;
+    struct viw *viw;
 
     struct wl_list inputs; // struct viw_input
     struct wl_list seats;  // struct viw_seat;

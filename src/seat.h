@@ -22,6 +22,9 @@
 #include <wayland-server.h>
 #include <wlr/types/wlr_seat.h>
 
+/*
+ * Handle to an input device for a seat
+ */
 struct viw_seat_input
 {
     struct viw_input *input;
@@ -33,4 +36,12 @@ struct viw_seat
     struct wlr_seat *global;
 
     struct wl_list inputs; // struct viw_seat_input
+};
+
+struct viw_seat_manager
+{
+    bool        init;
+    struct viw *viw;
+
+    struct wl_list seats;
 };
