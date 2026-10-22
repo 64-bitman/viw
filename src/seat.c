@@ -17,7 +17,7 @@
  */
 
 #include "seat.h"
-#include "input.h" // IWYU pragma: keep
+#include "input/input.h" // IWYU pragma: keep
 #include "log.h"
 #include "viw.h"
 #include <assert.h>

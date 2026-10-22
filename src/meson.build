@@ -1,8 +1,8 @@
+subdir('script')
+subdir('input')
+
 executable(
   'viw',
-  'api.c',
-  'config.c',
-  'input.c',
   'log.c',
   'main.c',
   'misc.c',
@@ -10,6 +10,8 @@ executable(
   'seat.c',
   'viw.c',
   'xdg.c',
+  script_sources,
+  input_sources,
   include_directories: include_directories('.'),
   dependencies: [wayland_server, wlroots, xkbcommon, luajit, libinput, libpcre2_8]
 )

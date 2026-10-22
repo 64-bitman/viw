@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "config.h"
-#include "input.h"
+#include "input/input.h"
+#include "script/config.h"
 #include "seat.h"
 #include <wayland-server.h>
 #include <wlr/backend.h>
