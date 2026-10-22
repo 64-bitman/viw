@@ -18,44 +18,54 @@
 
 #include "seat.h"
 #include "input/input.h" // IWYU pragma: keep
+#include "input/keyboard.h"
 #include "log.h"
 #include "viw.h"
 #include <assert.h>
 
 static void
-seat_input_free(struct viw_seat_input *sinput)
+viw_seat_input_destroy(struct viw_seat_input *sinput)
 {
     assert(sinput != NULL);
 
-    wl_list_remove(&sinput->input_destroy.link);
-    wl_list_remove(&sinput->new_event.link);
+    viw_debug(
+        "Seat \"%s\" removed input \"%s\"",
+        sinput->seat->global->name,
+        sinput->input->identifier
+    );
+
+    switch (sinput->input->device->type)
+    {
+    case WLR_INPUT_DEVICE_KEYBOARD:
+        viw_seat_keyboard_unconfigure((struct viw_seat_keyboard *)sinput);
+        break;
+    case WLR_INPUT_DEVICE_POINTER:
+    case WLR_INPUT_DEVICE_TOUCH:
+    case WLR_INPUT_DEVICE_TABLET:
+        wlr_cursor_detach_input_device(
+            sinput->seat->cursor, sinput->input->device
+        );
+        break;
+    default:
+        break;
+    }
+
+    wl_list_remove(&sinput->destroy.link);
     wl_list_remove(&sinput->link);
 
     viw_free(sinput);
 }
 
 static void
-event_input_destroy(struct wl_listener *listener, void *data UNUSED)
+event_viw_input_destroy(struct wl_listener *listener, void *data UNUSED)
 {
-    struct viw_seat_input *sinput =
-        wl_container_of(listener, sinput, input_destroy);
+    struct viw_seat_input *sinput = wl_container_of(listener, sinput, destroy);
 
-    seat_input_free(sinput);
+    viw_seat_input_destroy(sinput);
 }
 
 static void
-event_new_event(struct wl_listener *listener, void *data)
-{
-    struct viw_seat_input *sinput =
-        wl_container_of(listener, sinput, input_destroy);
-    struct viw_input_event *event = data;
-
-    // TODO
-    (void)event;
-}
-
-static void
-seat_add_input(struct viw_seat *seat, struct viw_input *input)
+viw_seat_add_input(struct viw_seat *seat, struct viw_input *input)
 {
     assert(seat != NULL);
     assert(input != NULL);
@@ -66,30 +76,51 @@ seat_add_input(struct viw_seat *seat, struct viw_input *input)
         seat->global->name
     );
 
-    struct viw_seat_input *sinput = viw_calloc(1, sizeof(*sinput));
+    size_t sz = sizeof(struct viw_seat_input);
+
+    switch (input->device->type)
+    {
+    case WLR_INPUT_DEVICE_KEYBOARD:
+        sz = sizeof(struct viw_seat_keyboard);
+        break;
+    default:
+        break;
+    }
+
+    struct viw_seat_input *sinput = viw_calloc(1, sz);
 
     if (sinput == NULL)
         return;
 
+    sinput->seat = seat;
     sinput->input = input;
 
-    sinput->new_event.notify = event_new_event;
-    wl_signal_add(&input->events.new_event, &sinput->new_event);
+    sinput->destroy.notify = event_viw_input_destroy;
+    wl_signal_add(&input->events.destroy, &sinput->destroy);
 
-    sinput->input_destroy.notify = event_input_destroy;
-    wl_signal_add(&input->events.input_destroy, &sinput->input_destroy);
+    switch (input->device->type)
+    {
+    case WLR_INPUT_DEVICE_KEYBOARD:
+        viw_seat_keyboard_configure((struct viw_seat_keyboard *)sinput);
+        break;
+    case WLR_INPUT_DEVICE_POINTER:
+    case WLR_INPUT_DEVICE_TOUCH:
+    case WLR_INPUT_DEVICE_TABLET:
+        wlr_cursor_attach_input_device(seat->cursor, input->device);
+        break;
+    default:
+        break;
+    }
 
     wl_list_insert(&seat->inputs, &sinput->link);
 }
 
 static void
-event_input_added(struct wl_listener *listener, void *data)
+event_viw_input_manager_new_input(struct wl_listener *listener, void *data)
 {
     struct viw_seat_manager *smgr =
         wl_container_of(listener, smgr, input_added);
     struct viw_input *input = data;
-
-    assert(smgr != NULL);
 
     // Add input device to all seats that have a match for its identifier
     struct viw_seat *seat;
@@ -98,7 +129,7 @@ event_input_added(struct wl_listener *listener, void *data)
     {
         if (seat->match_all)
         {
-            seat_add_input(seat, input);
+            viw_seat_add_input(seat, input);
             continue;
         }
 
@@ -118,7 +149,7 @@ event_input_added(struct wl_listener *listener, void *data)
             );
 
             if (ret >= 0)
-                seat_add_input(seat, input);
+                viw_seat_add_input(seat, input);
         }
     }
 }
@@ -134,8 +165,8 @@ viw_seat_manager_init(struct viw_seat_manager *smgr, struct viw *viw)
 
     wl_list_init(&smgr->seats);
 
-    smgr->input_added.notify = event_input_added;
-    wl_signal_add(&viw->imgr.events.input_added, &smgr->input_added);
+    smgr->input_added.notify = event_viw_input_manager_new_input;
+    wl_signal_add(&viw->imgr.events.new_input, &smgr->input_added);
 
     viw_debug("Initialized seat manager");
     smgr->viw = viw;
@@ -203,6 +234,23 @@ viw_seat_add(struct viw_seat_manager *smgr, const char *name)
         return NULL;
 
     seat->global = wlr_seat_create(smgr->viw->display, name);
+    if (seat->global == NULL)
+    {
+        viw_error("Error creating seat");
+
+        viw_free(seat);
+        return NULL;
+    }
+
+    seat->cursor = wlr_cursor_create();
+    if (seat->cursor == NULL)
+    {
+        viw_error("Error creating cursor for seat");
+
+        wlr_seat_destroy(seat->global);
+        viw_free(seat);
+        return NULL;
+    }
 
     wl_list_init(&seat->inputs);
     array_init(&seat->input_patterns);
@@ -228,8 +276,9 @@ viw_seat_remove(struct viw_seat *seat)
     struct viw_seat_input *sinput, *sinput_tmp;
 
     wl_list_for_each_safe(sinput, sinput_tmp, &seat->inputs, link)
-        seat_input_free(sinput);
+        viw_seat_input_destroy(sinput);
 
+    wlr_cursor_destroy(seat->cursor);
     wlr_seat_destroy(seat->global);
     wl_list_remove(&seat->link);
     viw_free(seat);

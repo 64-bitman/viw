@@ -17,6 +17,7 @@
  */
 
 #include "input.h"
+#include "keyboard.h"
 #include "log.h"
 #include "mem.h"
 #include "viw.h"
@@ -66,28 +67,8 @@ viw_input_destroy(struct viw_input *input)
 {
     assert(input != NULL);
 
-    wl_signal_emit(&input->events.input_destroy, NULL);
-    assert(wl_list_empty(&input->events.input_destroy.listener_list));
-    assert(wl_list_empty(&input->events.new_event.listener_list));
-
-    switch (input->device->type)
-    {
-    case WLR_INPUT_DEVICE_KEYBOARD:
-    {
-        struct viw_keyboard *kb = (struct viw_keyboard *)input;
-
-        wl_list_remove(&kb->key.link);
-        wl_list_remove(&kb->modifiers.link);
-        break;
-    case WLR_INPUT_DEVICE_POINTER:
-    {
-        break;
-    }
-    }
-    default:
-        viw_error("Unknown input device %d", input->device->type);
-        abort();
-    }
+    wl_signal_emit(&input->events.destroy, NULL);
+    assert(wl_list_empty(&input->events.destroy.listener_list));
 
     wl_list_remove(&input->destroy.link);
     wl_list_remove(&input->link);
@@ -96,7 +77,7 @@ viw_input_destroy(struct viw_input *input)
 }
 
 static void
-input_destroy(struct wl_listener *listener, void *data UNUSED)
+event_viw_input_destroy(struct wl_listener *listener, void *data UNUSED)
 {
     struct viw_input *input = wl_container_of(listener, input, destroy);
 
@@ -107,99 +88,6 @@ input_destroy(struct wl_listener *listener, void *data UNUSED)
 }
 
 static void
-event_key(struct wl_listener *listener, void *data)
-{
-    struct viw_keyboard           *kb = wl_container_of(listener, kb, key);
-    struct wlr_keyboard_key_event *event = data;
-
-    assert(kb != NULL);
-
-    (void)event; // TODO
-}
-
-static void
-event_modifiers(struct wl_listener *listener, void *data UNUSED)
-{
-    struct viw_keyboard *kb = wl_container_of(listener, kb, key);
-
-    assert(kb != NULL);
-}
-
-static bool
-configure_keyboard(struct viw_keyboard *kb)
-{
-    assert(kb != NULL);
-    assert(kb->base.device->type == WLR_INPUT_DEVICE_KEYBOARD);
-
-    struct xkb_context *ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-
-    if (ctx == NULL)
-    {
-        viw_error_errno("Error creating xkb context");
-        return false;
-    }
-
-    // TODO allow configuring of xkb keymap + use xkb file
-    struct xkb_keymap *keymap = xkb_keymap_new_from_names2(
-        ctx, NULL, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS
-    );
-
-    xkb_context_unref(ctx);
-
-    if (keymap == NULL)
-    {
-        viw_error_errno("Error creating xkb keymap");
-        return false;
-    }
-
-    kb->keyboard = wlr_keyboard_from_input_device(kb->base.device);
-
-    wlr_keyboard_set_keymap(kb->keyboard, keymap);
-    xkb_keymap_unref(keymap); // Above call takes reference
-
-    wlr_keyboard_set_repeat_info(kb->keyboard, 30, 200); // TODO
-
-    kb->key.notify = event_key;
-    wl_signal_add(&kb->keyboard->events.key, &kb->key);
-
-    kb->key.notify = event_modifiers;
-    wl_signal_add(&kb->keyboard->events.modifiers, &kb->modifiers);
-
-    return true;
-}
-
-static bool
-configure_pointer(struct viw_pointer *pr)
-{
-    assert(pr != NULL);
-    assert(pr->base.device->type == WLR_INPUT_DEVICE_POINTER);
-
-    // Do nothing for now
-    return true;
-}
-
-/*
- * Configure the input device for "input". This will attach listeners and device
- * specific logic. Returns false on failure.
- */
-static bool
-configure_input_device(struct viw_input *input)
-{
-    assert(input != NULL);
-
-    switch (input->device->type)
-    {
-    case WLR_INPUT_DEVICE_KEYBOARD:
-        return configure_keyboard((struct viw_keyboard *)input);
-    case WLR_INPUT_DEVICE_POINTER:
-        return configure_pointer((struct viw_pointer *)input);
-    default:
-        viw_error("Unknown input device \"%s\"", input->device->name);
-        abort();
-    }
-}
-
-static void
 event_new_input(struct wl_listener *listener, void *data)
 {
     struct viw_input_manager *imgr = wl_container_of(listener, imgr, new_input);
@@ -207,25 +95,24 @@ event_new_input(struct wl_listener *listener, void *data)
 
     assert(imgr != NULL);
 
-    size_t sz;
+    struct viw_input *input = viw_calloc(1, sizeof(*input));
+
+    if (input == NULL)
+        return;
 
     switch (device->type)
     {
     case WLR_INPUT_DEVICE_KEYBOARD:
-        sz = sizeof(struct viw_keyboard);
+        input->handle.keyboard = wlr_keyboard_from_input_device(device);
+        viw_input_configure_keyboard(input);
         break;
     case WLR_INPUT_DEVICE_POINTER:
-        sz = sizeof(struct viw_pointer);
+        input->handle.pointer = wlr_pointer_from_input_device(device);
         break;
     default:
         viw_warn("Unhandled input device \"%s\"", device->name);
-        return;
+        break;
     }
-
-    struct viw_input *input = viw_calloc(1, sz);
-
-    if (input == NULL)
-        return;
 
     input->identifier = input_device_get_identifier(device);
     if (input->identifier == NULL)
@@ -236,22 +123,13 @@ event_new_input(struct wl_listener *listener, void *data)
 
     input->device = device;
     input->viw = imgr->viw;
-    wl_signal_init(&input->events.input_destroy);
-    wl_signal_init(&input->events.new_event);
+    wl_signal_init(&input->events.destroy);
 
-    if (!configure_input_device(input))
-    {
-        viw_error("Error configuring input device \"%s\"", input->identifier);
-        viw_free(input->identifier);
-        viw_free(input);
-        return;
-    }
-
-    input->destroy.notify = input_destroy;
+    input->destroy.notify = event_viw_input_destroy;
     wl_signal_add(&input->device->events.destroy, &input->destroy);
 
     viw_debug("New input device \"%s\"", input->identifier);
-    wl_signal_emit(&imgr->events.input_added, input);
+    wl_signal_emit(&imgr->events.new_input, input);
 
     wl_list_insert(&imgr->inputs, &input->link);
 }
@@ -268,7 +146,7 @@ viw_input_manager_init(struct viw_input_manager *imgr, struct viw *viw)
     imgr->new_input.notify = event_new_input;
     wl_signal_add(&viw->backend->events.new_input, &imgr->new_input);
 
-    wl_signal_init(&imgr->events.input_added);
+    wl_signal_init(&imgr->events.new_input);
 
     viw_debug("Initialized input manager");
     imgr->viw = viw;
@@ -282,7 +160,7 @@ viw_input_manager_uninit(struct viw_input_manager *imgr)
     if (imgr->viw == NULL)
         return;
 
-    assert(wl_list_empty(&imgr->events.input_added.listener_list));
+    assert(wl_list_empty(&imgr->events.new_input.listener_list));
 
     wl_list_remove(&imgr->new_input.link);
 

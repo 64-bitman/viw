@@ -1,1 +1,1 @@
-input_sources = files('input.c')
+input_sources = files('input.c', 'keyboard.c')

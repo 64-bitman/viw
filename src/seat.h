@@ -21,27 +21,36 @@
 #include "array.h"
 #include <pcre2.h>
 #include <wayland-server.h>
+#include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_seat.h>
 
 struct viw;
+struct viw_seat;
 
 /*
- * Handle to an input device for a seat
+ * Base type for handle to an input device for a seat
  */
 struct viw_seat_input
 {
+    struct viw_seat  *seat;
     struct viw_input *input;
 
-    struct wl_listener new_event; // struct viw_input_event
-    struct wl_listener input_destroy;
+    struct wl_listener destroy;
+    struct wl_list     link;
+};
 
-    struct wl_list link;
+struct viw_seat_keyboard
+{
+    struct viw_seat_input base;
+    struct wl_listener    key; // struct wlr_keyboard_key_event
+    struct wl_listener    modifiers;
 };
 
 struct viw_seat
 {
-    struct wlr_seat *global;
-    struct wl_list   inputs; // struct viw_seat_input
+    struct wlr_seat   *global;
+    struct wlr_cursor *cursor;
+    struct wl_list     inputs; // struct viw_seat_input
 
     // Array of patterns to match new input devices to this seat
     ARRAY_DEF(input_patterns, pcre2_code *);

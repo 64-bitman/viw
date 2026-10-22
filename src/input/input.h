@@ -25,22 +25,6 @@
 
 struct viw;
 
-enum viw_input_event_type
-{
-    VIW_KEYBOARD_KEY,
-    VIW_KEYBOARD_MODIFIERS,
-};
-
-struct viw_input_event
-{
-    enum viw_input_event_type type;
-
-    union
-    {
-        struct wlr_keyboard_key_event *key;
-    };
-};
-
 /*
  * Base type for input device
  */
@@ -53,34 +37,16 @@ struct viw_input
     struct wl_listener       destroy;
     struct wl_list           link;
 
+    union
+    {
+        struct wlr_keyboard *keyboard;
+        struct wlr_pointer  *pointer;
+    } handle;
+
     struct
     {
-        struct wl_signal new_event;     // struct viw_input_event
-        struct wl_signal input_destroy; // Called for struct viw_input
+        struct wl_signal destroy;
     } events;
-};
-
-/*
- * WLR_INPUT_DEVICE_KEYBOARD
- */
-struct viw_keyboard
-{
-    struct viw_input base;
-
-    struct wlr_keyboard *keyboard;
-
-    struct wl_listener key;
-    struct wl_listener modifiers;
-};
-
-/*
- * WLR_INPUT_DEVICE_POINTER
- */
-struct viw_pointer
-{
-    struct viw_input base;
-
-    struct wlr_pointer *pointer;
 };
 
 struct viw_input_manager
@@ -94,7 +60,7 @@ struct viw_input_manager
 
     struct
     {
-        struct wl_signal input_added; // struct viw_input
+        struct wl_signal new_input; // struct viw_input
     } events;
 };
 
