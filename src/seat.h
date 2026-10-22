@@ -26,6 +26,7 @@
 
 struct viw;
 struct viw_seat;
+struct viw_cursor;
 
 /*
  * Base type for handle to an input device for a seat
@@ -49,7 +50,7 @@ struct viw_seat_keyboard
 struct viw_seat
 {
     struct wlr_seat   *global;
-    struct wlr_cursor *cursor;
+    struct viw_cursor *csr;
     struct wl_list     inputs; // struct viw_seat_input
 
     // Array of patterns to match new input devices to this seat

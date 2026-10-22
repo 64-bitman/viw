@@ -17,6 +17,7 @@
  */
 
 #include "seat.h"
+#include "input/cursor.h"
 #include "input/input.h" // IWYU pragma: keep
 #include "input/keyboard.h"
 #include "log.h"
@@ -43,7 +44,7 @@ viw_seat_input_destroy(struct viw_seat_input *sinput)
     case WLR_INPUT_DEVICE_TOUCH:
     case WLR_INPUT_DEVICE_TABLET:
         wlr_cursor_detach_input_device(
-            sinput->seat->cursor, sinput->input->device
+            sinput->seat->csr->cursor, sinput->input->device
         );
         break;
     default:
@@ -106,7 +107,7 @@ viw_seat_add_input(struct viw_seat *seat, struct viw_input *input)
     case WLR_INPUT_DEVICE_POINTER:
     case WLR_INPUT_DEVICE_TOUCH:
     case WLR_INPUT_DEVICE_TABLET:
-        wlr_cursor_attach_input_device(seat->cursor, input->device);
+        wlr_cursor_attach_input_device(seat->csr->cursor, input->device);
         break;
     default:
         break;
@@ -242,8 +243,8 @@ viw_seat_add(struct viw_seat_manager *smgr, const char *name)
         return NULL;
     }
 
-    seat->cursor = wlr_cursor_create();
-    if (seat->cursor == NULL)
+    seat->csr = viw_cursor_create(seat);
+    if (seat->csr == NULL)
     {
         viw_error("Error creating cursor for seat");
 
@@ -278,7 +279,7 @@ viw_seat_remove(struct viw_seat *seat)
     wl_list_for_each_safe(sinput, sinput_tmp, &seat->inputs, link)
         viw_seat_input_destroy(sinput);
 
-    wlr_cursor_destroy(seat->cursor);
+    viw_cursor_destroy(seat->csr);
     wlr_seat_destroy(seat->global);
     wl_list_remove(&seat->link);
     viw_free(seat);
