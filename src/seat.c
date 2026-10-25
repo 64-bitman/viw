@@ -253,6 +253,7 @@ viw_seat_add(struct viw_seat_manager *smgr, const char *name)
         return NULL;
     }
 
+    seat->mgr = smgr;
     wl_list_init(&seat->inputs);
     array_init(&seat->input_patterns);
 
