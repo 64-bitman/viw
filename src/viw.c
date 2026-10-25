@@ -61,6 +61,9 @@ viw_init(struct viw *viw)
         goto fail;
     }
 
+    if (!viw_output_manager_init(&viw->omgr, viw))
+        goto fail;
+
     viw_input_manager_init(&viw->imgr, viw);
     viw_seat_manager_init(&viw->smgr, viw);
 
@@ -87,6 +90,7 @@ viw_uninit(struct viw *viw)
 
     viw_seat_manager_uninit(&viw->smgr);
     viw_input_manager_uninit(&viw->imgr);
+    viw_output_manager_uninit(&viw->omgr);
 
     if (viw->allocator != NULL)
         wlr_allocator_destroy(viw->allocator);

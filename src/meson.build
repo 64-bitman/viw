@@ -7,6 +7,7 @@ executable(
   'main.c',
   'misc.c',
   'mem.c',
+  'output.c',
   'seat.c',
   'viw.c',
   'xdg.c',

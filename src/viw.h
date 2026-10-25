@@ -19,6 +19,7 @@
 #pragma once
 
 #include "input/input.h"
+#include "output.h"
 #include "script/config.h"
 #include "seat.h"
 #include <wayland-server.h>
@@ -41,8 +42,9 @@ struct viw
 
     struct viw_config cfg;
 
-    struct viw_input_manager imgr;
-    struct viw_seat_manager  smgr;
+    struct viw_output_manager omgr;
+    struct viw_input_manager  imgr;
+    struct viw_seat_manager   smgr;
 };
 
 // clang-format off
