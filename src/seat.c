@@ -31,7 +31,7 @@ viw_seat_input_destroy(struct viw_seat_input *sinput)
 
     viw_debug(
         "Seat \"%s\" removed input \"%s\"",
-        sinput->seat->global->name,
+        sinput->seat->seat->name,
         sinput->input->identifier
     );
 
@@ -74,7 +74,7 @@ viw_seat_add_input(struct viw_seat *seat, struct viw_input *input)
     viw_debug(
         "Adding input \"%s\" to seat \"%s\"",
         input->identifier,
-        seat->global->name
+        seat->seat->name
     );
 
     size_t sz = sizeof(struct viw_seat_input);
@@ -234,8 +234,8 @@ viw_seat_add(struct viw_seat_manager *smgr, const char *name)
     if (seat == NULL)
         return NULL;
 
-    seat->global = wlr_seat_create(smgr->viw->display, name);
-    if (seat->global == NULL)
+    seat->seat = wlr_seat_create(smgr->viw->display, name);
+    if (seat->seat == NULL)
     {
         viw_error("Error creating seat");
 
@@ -248,7 +248,7 @@ viw_seat_add(struct viw_seat_manager *smgr, const char *name)
     {
         viw_error("Error creating cursor for seat");
 
-        wlr_seat_destroy(seat->global);
+        wlr_seat_destroy(seat->seat);
         viw_free(seat);
         return NULL;
     }
@@ -269,7 +269,7 @@ viw_seat_remove(struct viw_seat *seat)
 {
     assert(seat != NULL);
 
-    viw_debug("Removing seat \"%s\"", seat->global->name);
+    viw_debug("Removing seat \"%s\"", seat->seat->name);
 
     for (size_t i = 0; i < array_len(&seat->input_patterns); i++)
         pcre2_code_free(array_val(&seat->input_patterns, i));
@@ -281,7 +281,7 @@ viw_seat_remove(struct viw_seat *seat)
         viw_seat_input_destroy(sinput);
 
     viw_cursor_destroy(seat->csr);
-    wlr_seat_destroy(seat->global);
+    wlr_seat_destroy(seat->seat);
     wl_list_remove(&seat->link);
     viw_free(seat);
 }

@@ -67,6 +67,8 @@ viw_input_destroy(struct viw_input *input)
 {
     assert(input != NULL);
 
+    viw_debug("Input \"%s\" removed", input->identifier);
+
     wl_signal_emit(&input->events.destroy, NULL);
     assert(wl_list_empty(&input->events.destroy.listener_list));
 
@@ -83,7 +85,6 @@ event_viw_input_destroy(struct wl_listener *listener, void *data UNUSED)
 
     assert(input != NULL);
 
-    viw_debug("Input \"%s\" removed", input->identifier);
     viw_input_destroy(input);
 }
 
@@ -122,7 +123,7 @@ event_new_input(struct wl_listener *listener, void *data)
     }
 
     input->device = device;
-    input->viw = imgr->viw;
+    input->mgr = imgr;
     wl_signal_init(&input->events.destroy);
 
     input->destroy.notify = event_viw_input_destroy;
@@ -141,7 +142,6 @@ viw_input_manager_init(struct viw_input_manager *imgr, struct viw *viw)
     assert(viw != NULL);
 
     wl_list_init(&imgr->inputs);
-    wl_list_init(&imgr->seats);
 
     imgr->new_input.notify = event_new_input;
     wl_signal_add(&viw->backend->events.new_input, &imgr->new_input);
@@ -159,6 +159,11 @@ viw_input_manager_uninit(struct viw_input_manager *imgr)
 
     if (imgr->viw == NULL)
         return;
+
+    struct viw_input *input, *input_tmp;
+
+    wl_list_for_each_safe(input, input_tmp, &imgr->inputs, link)
+        viw_input_destroy(input);
 
     assert(wl_list_empty(&imgr->events.new_input.listener_list));
 

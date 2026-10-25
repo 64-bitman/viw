@@ -24,13 +24,14 @@
 #include <wlr/types/wlr_pointer.h>
 
 struct viw;
+struct viw_input_manager;
 
 /*
  * Base type for input device
  */
 struct viw_input
 {
-    struct viw *viw;
+    struct viw_input_manager *mgr;
 
     char                    *identifier;
     struct wlr_input_device *device;
@@ -54,7 +55,6 @@ struct viw_input_manager
     struct viw *viw;
 
     struct wl_list inputs; // struct viw_input
-    struct wl_list seats;  // struct viw_seat;
 
     struct wl_listener new_input; // struct wlr_input_device
 

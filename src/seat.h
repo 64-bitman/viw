@@ -52,7 +52,7 @@ struct viw_seat
 {
     struct viw_seat_manager *mgr;
 
-    struct wlr_seat   *global;
+    struct wlr_seat   *seat;
     struct viw_cursor *csr;
     struct wl_list     inputs; // struct viw_seat_input
 
